@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Binary Tree Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-cyan-100 min-h-screen flex items-center justify-center px-4 py-8">
+  <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-5xl">
+    <h1 class="text-center text-3xl font-bold text-red-500 mb-8" style="font-family: 'Abril Fatface', cursive;">Binary Tree Visualizer</h1>
+
+    <div class="flex flex-wrap justify-center gap-4 mb-6">
+      <input type="number" id="nodeValue" placeholder="Enter node value" class="p-2 border border-gray-300 rounded-md text-sm" />
+      <button id="addRootBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Add Root</button>
+      <button id="addLeftBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Add Left Child</button>
+      <button id="addRightBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Add Right Child</button>
+      <select id="selectedNode" class="p-2 border border-gray-300 rounded-md text-sm" style="font-family: 'Abril Fatface', cursive;">
+        <option value="" >Select a node first</option>
+      </select>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-4 mb-6">
+      <button id="inorderBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Inorder Traversal</button>
+      <button id="preorderBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Preorder Traversal</button>
+      <button id="postorderBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Postorder Traversal</button>
+      <button id="resetBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm" style="font-family: 'Abril Fatface', cursive;">Reset Tree</button>
+    </div>
+
+    <div id="tree-container" class="overflow-x-auto mb-6">
+      <div id="tree" class="flex flex-col items-center min-w-[600px] relative"></div>
+    </div>
+
+    <div id="output" class="text-center bg-gray-100 p-4 rounded-md border border-gray-300 flex flex-wrap justify-center gap-2"></div>
+  </div>
+
+  <style>
+    .node {
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      background-color: #4caf50;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .node.highlight {
+      background-color: #ff5722;
+      box-shadow: 0 0 10px #ff5722;
+    }
+
+    .line {
+      position: absolute;
+      background-color: #333;
+      height: 2px;
+      z-index: 0;
+    }
+
+    .output span {
+      display: inline-block;
+      margin: 4px;
+      padding: 5px 10px;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+    }
+
+    .output span.highlight {
+      background-color: #ff5722;
+      color: white;
+    }
+  </style>
+
+  <script>
+    class TreeNode {
+      constructor(value) {
+        this.value = value;
+        this.left = null;
+        this.right = null;
+        this.id = Date.now() + Math.random().toString(36).substr(2, 9);
+      }
+    }
+
+    class BinaryTree {
+      constructor() {
+        this.root = null;
+        this.selectedNode = null;
+        this.nodeMap = new Map();
+      }
+
+      addRoot(value) {
+        if (this.root) {
+          alert("Root already exists!");
+          return false;
+        }
+        this.root = new TreeNode(value);
+        this.nodeMap.set(this.root.id, this.root);
+        this.selectedNode = this.root;
+        return true;
+      }
+
+      addLeftChild(parentId, value) {
+        const parent = this.nodeMap.get(parentId);
+        if (!parent || parent.left) return alert("Left child already exists!");
+        const newNode = new TreeNode(value);
+        parent.left = newNode;
+        this.nodeMap.set(newNode.id, newNode);
+        return true;
+      }
+
+      addRightChild(parentId, value) {
+        const parent = this.nodeMap.get(parentId);
+        if (!parent || parent.right) return alert("Right child already exists!");
+        const newNode = new TreeNode(value);
+        parent.right = newNode;
+        this.nodeMap.set(newNode.id, newNode);
+        return true;
+      }
+
+      selectNode(nodeId) {
+        this.selectedNode = this.nodeMap.get(nodeId);
+      }
+
+      reset() {
+        this.root = null;
+        this.selectedNode = null;
+        this.nodeMap.clear();
+      }
+
+      async inorder(node, callback) {
+        if (!node) return;
+        await this.inorder(node.left, callback);
+        await callback(node);
+        await this.inorder(node.right, callback);
+      }
+
+      async preorder(node, callback) {
+        if (!node) return;
+        await callback(node);
+        await this.preorder(node.left, callback);
+        await this.preorder(node.right, callback);
+      }
+
+      async postorder(node, callback) {
+        if (!node) return;
+        await this.postorder(node.left, callback);
+        await this.postorder(node.right, callback);
+        await callback(node);
+      }
+    }
+
+    const tree = new BinaryTree();
+    const treeContainer = document.getElementById('tree');
+    const outputDiv = document.getElementById('output');
+    const nodeValueInput = document.getElementById('nodeValue');
+    const selectedNodeSelect = document.getElementById('selectedNode');
+
+    function renderTree() {
+      treeContainer.innerHTML = '';
+      selectedNodeSelect.innerHTML = tree.root ? '<option value="">Select a node to add child</option>' : '<option value="">Select a node first</option>';
+
+      if (!tree.root) return;
+
+      const maxDepth = getDepth(tree.root);
+      const container = document.createElement('div');
+      container.className = 'tree flex flex-col items-center relative';
+      for (let i = 0; i < maxDepth; i++) {
+        const level = document.createElement('div');
+        level.className = 'level flex justify-center gap-12 mb-6';
+        container.appendChild(level);
+      }
+      treeContainer.appendChild(container);
+
+      const nodeElements = new Map();
+
+      function build(node, level) {
+        if (!node) return;
+        const levelDiv = container.children[level];
+        const nodeElement = document.createElement('div');
+        nodeElement.className = 'node';
+        nodeElement.textContent = node.value;
+        nodeElement.dataset.id = node.id;
+        if (tree.selectedNode?.id === node.id) nodeElement.classList.add('highlight');
+        nodeElement.addEventListener('click', () => {
+          tree.selectNode(node.id);
+          renderTree();
+        });
+        levelDiv.appendChild(nodeElement);
+        nodeElements.set(node.id, { node, element: nodeElement });
+        build(node.left, level + 1);
+        build(node.right, level + 1);
+      }
+
+      build(tree.root, 0);
+
+      tree.nodeMap.forEach((node, id) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = `Node: ${node.value}`;
+        if (tree.selectedNode?.id === id) option.selected = true;
+        selectedNodeSelect.appendChild(option);
+      });
+
+      requestAnimationFrame(() => drawLines(tree.root, nodeElements));
+    }
+
+    function drawLines(node, nodeElements) {
+      if (!node) return;
+      const parentEl = nodeElements.get(node.id)?.element;
+      const parentX = parentEl.offsetLeft + parentEl.offsetWidth / 2;
+      const parentY = parentEl.offsetTop + parentEl.offsetHeight;
+      ['left', 'right'].forEach(side => {
+        const child = node[side];
+        if (!child) return;
+        const childEl = nodeElements.get(child.id)?.element;
+        const childX = childEl.offsetLeft + childEl.offsetWidth / 2;
+        const childY = childEl.offsetTop;
+        const deltaX = childX - parentX;
+        const deltaY = childY - parentY;
+        const length = Math.sqrt(deltaX ** 2 + deltaY ** 2);
+        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+        const line = document.createElement('div');
+        line.className = 'line';
+        line.style.width = `${length}px`;
+        line.style.transform = `rotate(${angle}deg)`;
+        line.style.transformOrigin = '0 0';
+        line.style.left = `${parentX}px`;
+        line.style.top = `${parentY}px`;
+        parentEl.closest('.tree').appendChild(line);
+      });
+      drawLines(node.left, nodeElements);
+      drawLines(node.right, nodeElements);
+    }
+
+    function getDepth(node) {
+      if (!node) return 0;
+      return 1 + Math.max(getDepth(node.left), getDepth(node.right));
+    }
+
+    function clearLines() {
+      document.querySelectorAll('.line').forEach(line => line.remove());
+    }
+
+    async function traverse(order) {
+      outputDiv.innerHTML = '';
+      const output = [];
+      function highlightNode(node) {
+        return new Promise(resolve => {
+          const nodeElement = document.querySelector(`.node[data-id="${node.id}"]`);
+          if (nodeElement) {
+            nodeElement.classList.add('highlight');
+            const span = document.createElement('span');
+            span.textContent = node.value;
+            output.push(span);
+            outputDiv.appendChild(span);
+            setTimeout(() => {
+              span.classList.add('highlight');
+              setTimeout(() => {
+                nodeElement.classList.remove('highlight');
+                span.classList.remove('highlight');
+                resolve();
+              }, 500);
+            }, 500);
+          } else resolve();
+        });
+      }
+      if (order === 'inorder') await tree.inorder(tree.root, highlightNode);
+      if (order === 'preorder') await tree.preorder(tree.root, highlightNode);
+      if (order === 'postorder') await tree.postorder(tree.root, highlightNode);
+    }
+
+    document.getElementById('addRootBtn').addEventListener('click', () => {
+      const value = nodeValueInput.value.trim();
+      if (!value) return alert("Please enter a value!");
+      if (tree.addRoot(parseInt(value))) {
+        renderTree();
+        nodeValueInput.value = '';
+      }
+    });
+
+    document.getElementById('addLeftBtn').addEventListener('click', () => {
+      const value = nodeValueInput.value.trim();
+      if (!value || !tree.selectedNode) return alert("Select a node and enter a value!");
+      if (tree.addLeftChild(tree.selectedNode.id, parseInt(value))) {
+        renderTree();
+        nodeValueInput.value = '';
+      }
+    });
+
+    document.getElementById('addRightBtn').addEventListener('click', () => {
+      const value = nodeValueInput.value.trim();
+      if (!value || !tree.selectedNode) return alert("Select a node and enter a value!");
+      if (tree.addRightChild(tree.selectedNode.id, parseInt(value))) {
+        renderTree();
+        nodeValueInput.value = '';
+      }
+    });
+
+    selectedNodeSelect.addEventListener('change', (e) => {
+      if (e.target.value) {
+        tree.selectNode(e.target.value);
+        renderTree();
+      }
+    });
+
+    document.getElementById('inorderBtn').addEventListener('click', () => {
+      if (!tree.root) return alert("Tree is empty!");
+      traverse('inorder');
+    });
+
+    document.getElementById('preorderBtn').addEventListener('click', () => {
+      if (!tree.root) return alert("Tree is empty!");
+      traverse('preorder');
+    });
+
+    document.getElementById('postorderBtn').addEventListener('click', () => {
+      if (!tree.root) return alert("Tree is empty!");
+      traverse('postorder');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      tree.reset();
+      renderTree();
+      outputDiv.innerHTML = '';
+      clearLines();
+    });
+
+    renderTree();
+  </script>
+</body>
+</html>
